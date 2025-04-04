@@ -32,10 +32,17 @@ pico_sdk_init()
 # Add the project source files
 add_executable(${PROJECT_NAME}
     src/main.c
-    src/stdio.c
+    src/stdio_utils.c
 
     # additional source files
 )
+
+# Add include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
+
 
 
 # Link the Pico SDK libraries

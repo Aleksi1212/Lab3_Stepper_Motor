@@ -3,15 +3,21 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 
-#include "../include/stdio.h"
+#include "stdio_utils.h"
 
 int main(void) {
     stdio_init_all();
     
     while (true) {
-        char *test = NULL;
-        int status = read_line(&test);
-        printf("%s\n", test);
+        char *command = NULL;
+        int status = read_line(&command);
+
+        if (status > 0 || command == NULL) {
+            printf("Inalid commad\n");
+            continue;
+        }
+
+
     }
     return 0;
 }
