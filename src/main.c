@@ -1,27 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "pico/stdlib.h"
 
 #include "constants.h"
 #include "stdio_utils.h"
 #include "pin_config.h"
-
-static int STEPS[STEP_COUNT][STEPS_COUNT] =
-{
-    { 1, 0, 0, 0 },
-    { 1, 1, 0, 0 },
-    { 0, 1, 0, 0 },
-    { 0, 1, 1, 0 },
-    { 0, 0, 1, 0 },
-    { 0, 0, 1, 1 },
-    { 0, 0, 0, 1 },
-    { 1, 0, 0, 1 }
-};
+#include "motor.h"
 
 int main(void) {
     stdio_init_all();
-    
+
     init_input_pin(OPTO_FORK);
 
     init_output_pin(IN_1);
@@ -31,106 +21,79 @@ int main(void) {
 
     bool calibrated = false;
     int steps_per_revolution = 0;
-    int stopped_step = 0;
+    int current_step = 0;
 
     char *command = NULL;
     while (true) {
         if (command == NULL) {
             int status = read_line(&command);
             if (status > 0) {
+                command = NULL;
                 fprintf(stderr, "An error occurred\n");
                 return status;
             }
         }
 
-        if (strcmp(command, "spin") == 0) {
-            int rot = (4096/8)*(1.0/8.0);
-            printf("rot: %d\n", rot);
-            for (int j = 0; j < rot; j++) {
-                printf("%d\n", j);
-                for (int i = 0; i < 8; i++) {
-                    // if (gpio_get(OPTO_FORK) == 0) {
-                    //     stopped_step = i;
-                    //     break;
-                    // }
+        char *splitted_command[MAX_COMMAND_SIZE];
+        int split_count = split_command(command, " ", splitted_command);
+
+        if (split_count > 0) {
+            if (strcmp(splitted_command[0], "status") == 0) {
+                if (calibrated) {
+                    printf("Motor is calibrated.\n");
+                    printf("Steps per revolution: %d.\n", steps_per_revolution);
+                } else {
+                    printf("Motor is not calibrated.\n");
+                    printf("Steps per revolution: Not available.\n");
+                }
+            }
     
-                    gpio_put(IN_1, STEPS[i][0]);
-                    gpio_put(IN_2, STEPS[i][1]);
-                    gpio_put(IN_3, STEPS[i][2]);
-                    gpio_put(IN_4, STEPS[i][3]);
-                    
-                    
-                    // steps_per_revolution++;
-                    sleep_ms(2);
-                }
+            else if (strcmp(splitted_command[0], "calib") == 0) {
+                printf("Calibrating...\n");
+                steps_per_revolution = calibrate_motor(&current_step);
+                calibrated = true;
+                printf("Calibrated.\n");
             }
-            command = NULL;
-        }
 
-        if (strcmp(command, "calib") == 0) {
-            // printf("Calibrating...\n");
-
-            int revolutions = 0;
-            while (revolutions < 3)
-            {
-                printf("Rvolution %d\n", revolutions);
-                for (int i = stopped_step; i < STEP_COUNT; i++) {
-                    if (gpio_get(OPTO_FORK) == 0) {
-                        stopped_step = i;
-                        printf("%d\n", stopped_step);
-                        break;
+            else if (strcmp(splitted_command[0], "run") == 0) {
+                if (calibrated) {
+                    int N = SEQUENCE_COUNT;
+                    int steps = (steps_per_revolution * N) / SEQUENCE_COUNT;
+    
+                    if (split_count > 1) {
+                        if (valid_char_digit(splitted_command[1])) {
+                            N = atoi(splitted_command[1]);
+                            if (N > 8) {
+                                fprintf(stderr, "Too large.\n");
+                            } else if (N < 1) {
+                                fprintf(stderr, "Too small.\n");
+                            } else {
+                                printf("Running %d/%d of a revolution.\n", N, SEQUENCE_COUNT);
+                                steps = (steps_per_revolution * N) / SEQUENCE_COUNT;
+                                run(steps, &current_step);
+                                printf("Completed.\n");
+                            }
+                        } else {
+                            fprintf(stderr, "%s not an integer.\n", splitted_command[1]);
+                        }
+                    } else {
+                        printf("Running 1 revolution.\n");
+                        run(steps, &current_step);
+                        printf("Completed.\n");
                     }
-
-                    gpio_put(IN_1, STEPS[i][0]);
-                    gpio_put(IN_2, STEPS[i][1]);
-                    gpio_put(IN_3, STEPS[i][2]);
-                    gpio_put(IN_4, STEPS[i][3]);
-                    
-                    
-                    // steps_per_revolution++;
-                    sleep_ms(2);
-                }
-                revolutions++;
+                } else {
+                    fprintf(stderr, "Not calibrated.\n");
+                } 
             }
 
-            calibrated = true;
-            // steps_per_revolution /= 3;            
-            // printf("Calibrated\n");
-
+            else {
+                printf("Invalid command.\n");
+            }
+        } else {
+            printf("No commands provided.\n");
         }
 
-        // if (strcmp(command, "status") == 0) {
-        //     if (calibrated) {
-        //         printf("Motor is calibrated\n");
-        //         printf("Steps per revolution %d\n", steps_per_revolution);
-        //     } else {
-        //         printf("Motor is not calibrated\n");
-        //         printf("Not available\n");
-        //     }
-        // }
-
-        // if (strcmp(command, "calib") == 0) {
-        //     printf("calibrating...\n");
-        //     for (int i = 0; i < STEP_COUNT; i++) {
-        //         // if (gpio_get(OPTO_FORK) == 0) {
-        //         //     calibrated = true;
-        //         //     break;
-        //         // }
-
-        //         gpio_put(IN_1, STEPS[i][0]);
-        //         gpio_put(IN_2, STEPS[i][1]);
-        //         gpio_put(IN_3, STEPS[i][2]);
-        //         gpio_put(IN_4, STEPS[i][3]);
-        //         sleep_ms(2);
-        //     }
-        // }
-
-        // if (!calibrated) {
-
-        // }
-        // else {
-        //     printf("Calibrated\n");
-        // }
+        command = NULL;
     }
     return 0;
 }
