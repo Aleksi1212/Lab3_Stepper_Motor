@@ -34,6 +34,7 @@ add_executable(${PROJECT_NAME}
     src/main.c
     src/stdio_utils.c
     src/pin_config.c
+    src/motor.c
 
     # additional source files
 )
