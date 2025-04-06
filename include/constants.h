@@ -8,7 +8,9 @@
 #define IN_3 6
 #define IN_4 13
 
-#define STEP_COUNT 8
+#define SEQUENCE_COUNT 8
 #define STEPS_COUNT 4
+
+#define MAX_COMMAND_SIZE 2
 
 #endif
