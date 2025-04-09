@@ -63,9 +63,7 @@ int main(void) {
                     if (split_count > 1) {
                         if (valid_char_digit(splitted_command[1])) {
                             N = atoi(splitted_command[1]);
-                            if (N > 8) {
-                                fprintf(stderr, "Too large.\n");
-                            } else if (N < 1) {
+                            if (N < 1) {
                                 fprintf(stderr, "Too small.\n");
                             } else {
                                 printf("Running %d/%d of a revolution.\n", N, SEQUENCE_COUNT);
